@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileSimulator | Análisis energético</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <strong>FileSimulator</strong>
+        <span>v2-ui preview</span>
+      </div>
+    </div>
+
+    <nav class="side-nav">
+      <button class="nav-item active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="nav-item" data-tab="curvas">📈 Curvas</button>
+      <button class="nav-item" data-tab="franjas">⏰ Punta/Llano/Valle</button>
+      <button class="nav-item" data-tab="reactiva">🔋 Reactiva</button>
+      <button class="nav-item" data-tab="heatmap">🔥 Heatmap</button>
+      <button class="nav-item" data-tab="rankings">🏆 Rankings</button>
+    </nav>
+
+    <div class="privacy-card">
+      <strong>Privacidad</strong>
+      <p>El Excel se procesa en tu navegador. No se sube a ningún servidor.</p>
+    </div>
+  </aside>
+
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Dashboard energético</p>
+        <h1>Analizador de Consumos UTE</h1>
+        <p class="subtitle">Carga medidas cada 15 minutos y analiza energía activa, reactiva, horarios, curvas, rankings y patrones de consumo.</p>
+      </div>
+
+      <div class="top-actions">
+        <button id="themeToggle" class="ghost">🌙 Modo oscuro</button>
+        <label class="upload-btn">
+          Subir Excel
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+        </label>
+      </div>
+    </header>
+
+    <section id="dropZone" class="dropzone">
+      <div class="drop-icon">📁</div>
+      <div>
+        <strong>Arrastrá tu archivo Excel acá</strong>
+        <p>También podés usar el botón “Subir Excel”. Compatible con hoja Measures o columnas FECHA-HORA / MAGNITUD / VALOR.</p>
+      </div>
+    </section>
+
+    <section id="status" class="status empty">
+      Esperando archivo para comenzar el análisis.
+    </section>
+
+    <section class="controls panel">
+      <div>
+        <label>Desde</label>
+        <input type="date" id="dateFrom" />
+      </div>
+      <div>
+        <label>Hasta</label>
+        <input type="date" id="dateTo" />
+      </div>
+      <div>
+        <label>Magnitud principal</label>
+        <select id="mainMagnitude">
+          <option value="AE">AE - Energía activa</option>
+          <option value="Q1">Q1 - Reactiva Q1</option>
+        </select>
+      </div>
+      <button id="applyFilters">Aplicar filtros</button>
+      <button id="resetFilters" class="secondary">Reset</button>
+    </section>
+
+    <section id="dashboard" class="tab-panel active">
+      <div class="section-title">
+        <div>
+          <p>Vista general</p>
+          <h2>Resumen ejecutivo</h2>
+        </div>
+        <span id="periodBadge" class="badge">Sin archivo</span>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="grid two">
+        <article class="panel"><h3>Consumo mensual</h3><canvas id="monthlyChart"></canvas></article>
+        <article class="panel"><h3>Consumo por hora del día</h3><canvas id="hourlyChart"></canvas></article>
+      </div>
+
+      <div class="grid two">
+        <article class="panel"><h3>Consumo por día de semana</h3><canvas id="weekdayChart"></canvas></article>
+        <article class="panel insight-panel">
+          <h3>Lectura rápida</h3>
+          <div id="insights" class="insights"></div>
+        </article>
+      </div>
+
+      <article class="panel"><h3>Consumo diario</h3><canvas id="dailyChart"></canvas></article>
+    </section>
+
+    <section id="curvas" class="tab-panel">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="mini">Potencia estimada = kWh del intervalo × 4</p>
+            <h3>Curva de carga</h3>
+          </div>
+          <div class="range-actions">
+            <button class="chip active" data-curve="1200">Últimos 1200 registros</button>
+            <button class="chip" data-curve="all">Todo el período</button>
+          </div>
+        </div>
+        <canvas id="loadCurveChart"></canvas>
+      </article>
+    </section>
+
+    <section id="franjas" class="tab-panel">
+      <div class="grid two">
+        <article class="panel"><h3>Energía por tramo</h3><canvas id="bandsChart"></canvas></article>
+        <article class="panel"><h3>Resumen por tramo</h3><div id="bandsTable"></div></article>
+      </div>
+      <article class="panel note">
+        <strong>Criterio usado:</strong> Valle 00:00-07:00, Llano 07:00-18:00 y 22:00-24:00, Punta 18:00-22:00 de lunes a viernes. La punta de sábado/domingo se muestra separada.
+      </article>
+    </section>
+
+    <section id="reactiva" class="tab-panel">
+      <div class="section-title">
+        <div>
+          <p>Análisis Q1</p>
+          <h2>Reactiva</h2>
+        </div>
+      </div>
+      <div class="kpi-grid" id="reactiveKpis"></div>
+      <div class="grid two">
+        <article class="panel"><h3>AE vs Q1 mensual</h3><canvas id="reactiveMonthlyChart"></canvas></article>
+        <article class="panel"><h3>Relación Q1 / AE</h3><canvas id="ratioChart"></canvas></article>
+      </div>
+    </section>
+
+    <section id="heatmap" class="tab-panel">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="mini">Promedio de consumo por día de semana y hora</p>
+            <h3>Mapa de calor horario</h3>
+          </div>
+        </div>
+        <div id="heatmapGrid" class="heatmap-grid"></div>
+      </article>
+    </section>
+
+    <section id="rankings" class="tab-panel">
+      <div class="grid two">
+        <article class="panel"><h3>Top 10 días de mayor consumo</h3><div id="topDaysTable"></div></article>
+        <article class="panel"><h3>Top 10 picos de potencia</h3><div id="topPeaksTable"></div></article>
+      </div>
+      <button id="exportCsv" class="export">Exportar resumen CSV</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
